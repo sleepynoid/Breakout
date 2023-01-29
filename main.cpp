@@ -1,78 +1,102 @@
 #include <SFML/Graphics.hpp>
-#include <SFML/Graphics/CircleShape.hpp>
 #include <SFML/Graphics/RectangleShape.hpp>
+#include <SFML/Graphics/RenderTarget.hpp>
+#include <SFML/Graphics/RenderWindow.hpp>
+#include <SFML/Graphics/CircleShape.hpp>
+#include <SFML/Graphics/Shape.hpp>
 #include <SFML/System/Vector2.hpp>
-#include <SFML/Window.hpp>
-#include <SFML/Window/Event.hpp>
-#include <iostream>
+#include <cmath>
 using namespace sf;
 using namespace std;
+class Ball {
+    private:
+        CircleShape shape;
+        Vector2f velocity;
 
-RectangleShape paddle;
-RectangleShape brick;
-CircleShape ball;
+    public:
+        Ball(float r = 10.f, float x = 400.f, float y = 300.f) {
+            shape.setRadius(r);
+            shape.setPosition(x, y);
+        };
+        void setVelocity(float x, float y) {
+            velocity.x = x;
+            velocity.y = y;
+        };
+        void setPosition(float x, float y) {
+            shape.setPosition(x, y);
+        }
+        Vector2f getPosition() {return shape.getPosition();}
+        Vector2f getVelocity() {return velocity;}
+        float getRadius() {return shape.getRadius();}
+        void update() {
+            shape.move(velocity);
+        };
+        void draw(RenderTarget& target) {
+            target.draw(shape);
+        };
+        bool checkCollisionWithBlock() {
+            
+        }
+};
+class Block {
+    private:
+        RectangleShape shape;
+        bool destroyed = false;
+    
+    public:
+        Block(float x = 50.f, float y = 10.f) {
+            Vector2f size(x, y);
+            shape.setSize(size);
+        }
+        RectangleShape getShape() {return shape;}
+        void setPosition(float x = 50.f, float y = 400.f) {
+            shape.setPosition(x, y);
+        }
+        void destroy() {destroyed = true;}
+        bool isDestroyed() {return destroyed;}
+        void draw(RenderTarget& target) {
+            if (!destroyed) target.draw(shape);
+        }
+};
+void handleCollision(Ball& ball, RenderWindow& window) {
+    Vector2f position = ball.getPosition();
+    Vector2f velocity = ball.getVelocity();
+    float radius = ball.getRadius()*2;
+    if (position.x - radius <= 0) velocity.x = abs(velocity.x);
+    else if (position.x + radius >= window.getSize().x) velocity.x = -abs(velocity.x);
+    if (position.y - radius <= 0) velocity.y = abs(velocity.y);
+    else if (position.y + radius >= window.getSize().y) velocity.y = -abs(velocity.y);
+    ball.setVelocity(velocity.x, velocity.y);
+};
 
 int main() {
-    // Create the game window
     RenderWindow window(VideoMode(800, 600), "Breakout");
     window.setFramerateLimit(60);
-
-    // Load the game's assets (e.g. sprites, fonts, etc.)
-    // initialize the game objects and variables
-    Vector2u windowSize = window.getSize();
-    Vector2f ballPosition;
-    // paddle
-    int SPEED = 10, PADDLE_SPEED = SPEED, BALL_SPEED = SPEED;
-    paddle.setSize({100,10});
-    paddle.setPosition(400,500);
-    // ball
-    ball.setRadius(5);
-    ball.setPosition(200,200);
-    // brick
-    brick.setSize({80,20});
-    brick.setPosition(80,100);
-    cout << ball.getRadius();
-    // Main game loop
+    // initianlize ball class
+    Ball ball;
+    ball.setVelocity(10.f, 10.f);
+    ball.setPosition(780,580);
+    Block block;
+    block.setPosition();
+    // looping in window
     while (window.isOpen()) {
-        // Handle events
-        Event event;
-        while (window.pollEvent(event)) {
-            if (event.type == Event::Closed) {
-                window.close();
-            }
-            else if (event.type == Event::KeyPressed) {
-                if (event.key.code == Keyboard::Right) {
-                    paddle.move(PADDLE_SPEED,0);
-                }
-                else if (event.key.code == Keyboard::Left) {
-                    paddle.move(-PADDLE_SPEED,0);
-                }
-                else if (event.key.code == Keyboard::Up) {
-                    paddle.move(0, -PADDLE_SPEED);
-                }
-                else if (event.key.code == Keyboard::Down) {
-                    paddle.move(0,PADDLE_SPEED);
+        while (window.isOpen()) {
+            Event event;
+            while (window.pollEvent(event)) {
+                if (event.type == Event::Closed) {
+                    window.close();
                 }
             }
+            //clear window
+            window.clear();
+            // main program
+            handleCollision(ball, window);
+            ball.update();
+            ball.draw(window);
+            block.draw(window);
+            // logic
+            // render drawing to window
+            window.display();
         }
-        // Update the game logic
-        ball.move(0, BALL_SPEED);
-        ballPosition = ball.getPosition();
-        if (ballPosition.y > 0 && ballPosition.y + ball.getRadius() > windowSize.y) BALL_SPEED = -BALL_SPEED;
-        else if(ballPosition.y < 0 && ballPosition.y + ball.getRadius() < windowSize.y) BALL_SPEED = -BALL_SPEED;
-        if (ballPosition.x > 0 && ballPosition.x + ball.getRadius() > windowSize.x) BALL_SPEED = -BALL_SPEED;
-        else if(ballPosition.x < 0 && ballPosition.x + ball.getRadius() < windowSize.x) BALL_SPEED = -BALL_SPEED;
-        // Clear the window
-        window.clear();
-
-        // Draw the game graphics
-        window.draw(paddle);
-        window.draw(ball);
-        window.draw(brick);
-
-        // Display the window
-        window.display();
     }
-
-    return 0;
 }
