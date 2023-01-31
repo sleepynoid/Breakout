@@ -6,8 +6,34 @@
 #include <SFML/Graphics/Shape.hpp>
 #include <SFML/System/Vector2.hpp>
 #include <cmath>
+#include <vector>
 using namespace sf;
 using namespace std;
+class Block {
+    private:
+        RectangleShape shape;
+        bool destroyable = true;
+        bool destroyed = false;
+    
+    public:
+        Block(float x = 10.f, float y = 10.f) {
+            Vector2f size(x, y);
+            shape.setSize(size);
+        }
+        RectangleShape getShape() {return shape;}
+        void setPosition(float x = 50.f, float y = 400.f) {
+            shape.setPosition(x, y);
+        }
+        void setMove(float x, float y) {
+            shape.move(x,y);
+        }
+        void setUndestroyable() {destroyable = false;}
+        void destroy() {if (destroyable == true) destroyed = true;}
+        bool isDestroyed() {return destroyed;}
+        void draw(RenderTarget& target) {
+            if (!destroyed) target.draw(shape);
+        }
+};
 class Ball {
     private:
         CircleShape shape;
@@ -18,7 +44,7 @@ class Ball {
             shape.setRadius(r);
             shape.setPosition(x, y);
         };
-        void setVelocity(float x, float y) {
+        void setVelocity(float x = 10, float y = 10) {
             velocity.x = x;
             velocity.y = y;
         };
@@ -34,29 +60,13 @@ class Ball {
         void draw(RenderTarget& target) {
             target.draw(shape);
         };
-        bool checkCollisionWithBlock() {
+        void checkCollisionWithBlock(Block& block) {
+            if (shape.getGlobalBounds().intersects(block.getShape().getGlobalBounds()) && !block.isDestroyed()) {
+                velocity.y *= -1;
+                block.destroy();
+            }
+        };
             
-        }
-};
-class Block {
-    private:
-        RectangleShape shape;
-        bool destroyed = false;
-    
-    public:
-        Block(float x = 50.f, float y = 10.f) {
-            Vector2f size(x, y);
-            shape.setSize(size);
-        }
-        RectangleShape getShape() {return shape;}
-        void setPosition(float x = 50.f, float y = 400.f) {
-            shape.setPosition(x, y);
-        }
-        void destroy() {destroyed = true;}
-        bool isDestroyed() {return destroyed;}
-        void draw(RenderTarget& target) {
-            if (!destroyed) target.draw(shape);
-        }
 };
 void handleCollision(Ball& ball, RenderWindow& window) {
     Vector2f position = ball.getPosition();
@@ -75,9 +85,12 @@ int main() {
     // initianlize ball class
     Ball ball;
     ball.setVelocity(10.f, 10.f);
-    ball.setPosition(780,580);
-    Block block;
+    ball.setPosition(780, 580);
+    Block block(200.f);
     block.setPosition();
+    block.setUndestroyable();
+    Block block1(100.f,10.f);
+    block1.setPosition(100.f, 80);
     // looping in window
     while (window.isOpen()) {
         while (window.isOpen()) {
@@ -86,16 +99,26 @@ int main() {
                 if (event.type == Event::Closed) {
                     window.close();
                 }
+                else if (event.type == Event::KeyPressed) {
+                    if (event.key.code == Keyboard::Right) {
+                        block.setMove(30, 0);
+                    }
+                    else if (event.key.code == Keyboard::Left) {
+                        block.setMove(-30, 0);
+                    }
+                }
             }
             //clear window
             window.clear();
-            // main program
+            // logic
             handleCollision(ball, window);
             ball.update();
+            ball.checkCollisionWithBlock(block);
+            ball.checkCollisionWithBlock(block1);
+            // render drawing to window
             ball.draw(window);
             block.draw(window);
-            // logic
-            // render drawing to window
+            block1.draw(window);
             window.display();
         }
     }
